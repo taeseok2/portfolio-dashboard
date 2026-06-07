@@ -1,0 +1,27 @@
+# Ruff linter + formatter configuration
+line-length = 100
+target-version = "py311"
+
+[lint]
+select = [
+    "E",   # pycodestyle errors
+    "W",   # pycodestyle warnings
+    "F",   # pyflakes
+    "I",   # isort
+    "UP",  # pyupgrade
+    "B",   # flake8-bugbear
+    "C4",  # flake8-comprehensions
+    "SIM", # flake8-simplify
+]
+ignore = [
+    "E501",   # line too long — formatter handles this
+    "B008",   # do not perform function calls in default arguments
+    "SIM108", # ternary operator — readability preference
+]
+
+[lint.per-file-ignores]
+"tests/*" = ["S101"]   # allow assert in tests
+
+[format]
+quote-style = "double"
+indent-style = "space"

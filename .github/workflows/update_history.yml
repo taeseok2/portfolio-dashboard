@@ -1,0 +1,62 @@
+name: Update Portfolio History
+
+on:
+  schedule:
+    # 21:30 UTC = ~5:30 PM ET — 30 min after NYSE close, Mon–Fri
+    - cron: "30 21 * * 1-5"
+  workflow_dispatch:   # allow manual runs from the Actions tab
+
+permissions:
+  contents: write      # needed to commit back to the repo
+
+jobs:
+  # ── Guard: only run when CI is green on main ───────────────────────────────
+  check-ci:
+    name: Verify CI passes on main
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check latest CI run on main
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          STATUS=$(gh api \
+            "repos/${{ github.repository }}/commits/main/check-suites" \
+            --jq '[.check_suites[] | select(.app.slug=="github-actions")] | .[0].conclusion')
+          echo "CI conclusion on main: $STATUS"
+          if [ "$STATUS" != "success" ] && [ "$STATUS" != "null" ]; then
+            echo "CI is not passing on main (conclusion=$STATUS). Aborting history update."
+            exit 1
+          fi
+
+  # ── Fetch and commit ───────────────────────────────────────────────────────
+  fetch-and-commit:
+    name: Fetch prices & commit
+    needs: check-ci
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Fetch daily price snapshot
+        run: python fetch_data.py
+
+      - name: Commit updated history (if changed)
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add data/history.csv
+          git diff --cached --quiet || git commit -m "chore: daily price snapshot $(date -u +%Y-%m-%d)"
+          git push
