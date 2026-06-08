@@ -3,6 +3,8 @@
 A self-updating, public portfolio tracker built with **Streamlit + Plotly + yfinance**.
 No API keys. No back-end server. Deploys free on Streamlit Community Cloud.
 
+<!-- CI/CD: lint + tests (3.11/3.12) + security audit run on every PR. -->
+
 ---
 
 ## Architecture
