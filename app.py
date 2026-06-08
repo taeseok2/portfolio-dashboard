@@ -160,6 +160,18 @@ for _, row in portfolio.iterrows():
 
 positions = pd.DataFrame(rows)
 
+# Graceful degradation: if no quotes came back (e.g. the data provider is
+# rate-limiting or temporarily down), show a clear message instead of crashing.
+if positions.empty:
+    st.markdown("## 📈 Portfolio Dashboard")
+    st.error(
+        "Couldn't fetch live price data for any holdings right now. "
+        "This usually means the market data provider (Yahoo Finance) is "
+        "rate-limiting or temporarily unavailable. Prices are cached for "
+        "5 minutes — please refresh in a little while."
+    )
+    st.stop()
+
 total_value    = positions["MktValue"].sum()
 total_cost     = positions["CostVal"].sum()
 total_gain     = total_value - total_cost
