@@ -7,13 +7,11 @@ import sys
 from pathlib import Path
 
 import pandas as pd
-import pytest
 
 ROOT = Path(__file__).parent.parent
 sys.path.insert(0, str(ROOT))
 
 import fetch_data as fd  # noqa: E402 — must come after sys.path patch
-
 
 # ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -33,7 +31,12 @@ def _run(portfolio_csv: str, data_dir: str, today_str: str, mocker):
 
     mocker.patch("fetch_data.date", _FakeDate)
     fd.main()
-    return pd.read_csv(os.path.join(data_dir, "history.csv"))
+    path = os.path.join(data_dir, "history.csv")
+    if not os.path.exists(path):
+        # main() writes nothing when there are no new rows — represent that
+        # as an empty frame with the expected schema.
+        return pd.DataFrame(columns=["date", "ticker", "price", "shares", "market_value"])
+    return pd.read_csv(path)
 
 
 # ─── Tests ───────────────────────────────────────────────────────────────────

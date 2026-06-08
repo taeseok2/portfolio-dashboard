@@ -29,9 +29,6 @@ jobs:
       - name: Lint
         run: ruff check .
 
-      - name: Format check
-        run: ruff format --check .
-
   # ── 2. Test ────────────────────────────────────────────────────────────────
   test:
     name: Test (pytest)

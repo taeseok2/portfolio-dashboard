@@ -1,11 +1,9 @@
 """Shared pytest fixtures."""
 
-import os
 import textwrap
 
 import pandas as pd
 import pytest
-
 
 # ── Fixtures ──────────────────────────────────────────────────────────────────
 

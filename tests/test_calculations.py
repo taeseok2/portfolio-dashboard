@@ -8,7 +8,6 @@ import numpy as np
 import pandas as pd
 import pytest
 
-
 # ─── Replicate the calculation logic from app.py ─────────────────────────────
 # (These helpers mirror what app.py does so we can test them in isolation.)
 

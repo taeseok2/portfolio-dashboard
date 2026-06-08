@@ -9,9 +9,10 @@ Run in CI:      see .github/workflows/update_history.yml
 
 import os
 import sys
+from datetime import date
+
 import pandas as pd
 import yfinance as yf
-from datetime import date
 
 DATA_DIR  = "data"
 HIST_FILE = os.path.join(DATA_DIR, "history.csv")

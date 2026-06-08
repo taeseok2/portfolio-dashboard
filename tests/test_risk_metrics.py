@@ -8,7 +8,6 @@ import numpy as np
 import pandas as pd
 import pytest
 
-
 # ─── Mirror the risk-metric logic from app.py ────────────────────────────────
 
 def build_port_returns(returns_df: pd.DataFrame, weights: pd.Series) -> pd.Series:
@@ -139,14 +138,17 @@ class TestRiskMetrics:
         assert abs(m["ann_vol"] - daily_std * np.sqrt(252) * 100) < 5.0  # within 5pp
 
     def test_sharpe_positive_for_strong_drift(self):
-        # +0.5% per day with tiny vol → very high Sharpe
-        pr = pd.Series([0.005] * 252)
-        m  = compute_risk_metrics(pr, rf=0.04)
+        # Strong positive mean with small noise → high (defined) Sharpe
+        rng = np.random.default_rng(1)
+        pr  = pd.Series(0.005 + rng.normal(0, 0.001, 252))
+        m   = compute_risk_metrics(pr, rf=0.04)
         assert m["sharpe"] > 1.0
 
     def test_sharpe_negative_for_losing_portfolio(self):
-        pr = pd.Series([-0.001] * 252)
-        m  = compute_risk_metrics(pr, rf=0.04)
+        # Negative mean with small noise → negative (defined) Sharpe
+        rng = np.random.default_rng(2)
+        pr  = pd.Series(-0.001 + rng.normal(0, 0.001, 252))
+        m   = compute_risk_metrics(pr, rf=0.04)
         assert m["sharpe"] < 0.0
 
     def test_max_drawdown_zero_for_monotone_up(self):

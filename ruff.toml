@@ -17,6 +17,7 @@ ignore = [
     "E501",   # line too long — formatter handles this
     "B008",   # do not perform function calls in default arguments
     "SIM108", # ternary operator — readability preference
+    "C408",   # dict() calls — intentional readability style in this codebase
 ]
 
 [lint.per-file-ignores]

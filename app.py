@@ -1,12 +1,13 @@
-import streamlit as st
-import pandas as pd
-import numpy as np
-import plotly.graph_objects as go
-import plotly.express as px
-from plotly.subplots import make_subplots
-import yfinance as yf
-from datetime import datetime, timedelta
 import os
+from datetime import datetime
+
+import numpy as np
+import pandas as pd
+import plotly.express as px
+import plotly.graph_objects as go
+import streamlit as st
+import yfinance as yf
+from streamlit_autorefresh import st_autorefresh
 
 # --- Page config ---
 st.set_page_config(
@@ -17,7 +18,6 @@ st.set_page_config(
 )
 
 # Auto-refresh every 60 seconds
-from streamlit_autorefresh import st_autorefresh  # noqa: E402
 st_autorefresh(interval=60_000, key="price_refresh")
 
 # --- Dark-mode CSS ---
@@ -244,7 +244,7 @@ fig_sector.add_trace(go.Bar(
     y=sector_alloc["Sector"],
     orientation="h",
     marker=dict(color="#6366f1"),
-    text=[f"${v:,.0f}  ({p:.1f}%)" for v, p in zip(sector_alloc["MktValue"], sector_alloc["Pct"])],
+    text=[f"${v:,.0f}  ({p:.1f}%)" for v, p in zip(sector_alloc["MktValue"], sector_alloc["Pct"], strict=False)],
     textposition="outside",
 ))
 fig_sector.update_layout(
@@ -289,7 +289,7 @@ else:
         "Risk metrics use ~6 months of daily returns, weighted by current market value. "
         "Sharpe assumes a 4% annual risk-free rate. Volatility and Sharpe are annualized (x sqrt 252)."
     )
-    
+
 # --- Correlation heatmap ---
 st.markdown('<div class="section-title">Holdings Correlation</div>', unsafe_allow_html=True)
 
