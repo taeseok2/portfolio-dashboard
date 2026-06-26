@@ -65,9 +65,9 @@ PLOTLY_LAYOUT = dict(
     margin=dict(l=16, r=16, t=40, b=16),
 )
 
-def fmt_currency(v): return f"${v:,.2f}"
+def fmt_currency(v): return f"₩{v:,.0f}"
 def fmt_pct(v):      return f"{v:+.2f}%"
-def fmt_delta(v):    return f"{v:+,.2f}"
+def fmt_delta(v):    return f"{v:+,.0f}"
 
 
 @st.cache_data(ttl=300)   # 5-minute cache
@@ -125,6 +125,8 @@ history   = load_history()
 
 tickers = portfolio["ticker"].tolist()
 has_sector = "sector" in portfolio.columns
+has_name   = "name" in portfolio.columns
+ticker_to_name = dict(zip(portfolio["ticker"], portfolio["name"], strict=False)) if has_name else {}
 
 with st.spinner("Fetching live prices..."):
     quotes = {t: fetch_quote(t) for t in tickers}
@@ -145,6 +147,7 @@ for _, row in portfolio.iterrows():
     gain_pct  = (gain / cost_val * 100) if cost_val else 0
     rows.append(dict(
         Ticker   = tk,
+        Name     = ticker_to_name.get(tk, tk),
         Sector   = row["sector"] if has_sector else "Unclassified",
         Shares   = sh,
         Price    = price,
@@ -200,7 +203,7 @@ col_pie, col_hist = st.columns([1, 2])
 with col_pie:
     fig_pie = px.pie(
         positions,
-        names="Ticker",
+        names="Name",
         values="MktValue",
         hole=0.55,
         color_discrete_sequence=px.colors.qualitative.Pastel,
@@ -256,14 +259,14 @@ fig_sector.add_trace(go.Bar(
     y=sector_alloc["Sector"],
     orientation="h",
     marker=dict(color="#6366f1"),
-    text=[f"${v:,.0f}  ({p:.1f}%)" for v, p in zip(sector_alloc["MktValue"], sector_alloc["Pct"], strict=False)],
+    text=[f"₩{v:,.0f}  ({p:.1f}%)" for v, p in zip(sector_alloc["MktValue"], sector_alloc["Pct"], strict=False)],
     textposition="outside",
 ))
 fig_sector.update_layout(
     **PLOTLY_LAYOUT,
     height=320,
     showlegend=False,
-    xaxis=dict(tickprefix="$", gridcolor="#1f2330", zerolinecolor="#1f2330"),
+    xaxis=dict(tickprefix="₩", gridcolor="#1f2330", zerolinecolor="#1f2330"),
     yaxis=dict(gridcolor="#1f2330", zerolinecolor="#1f2330"),
 )
 st.plotly_chart(fig_sector, use_container_width=True)
@@ -272,12 +275,15 @@ st.plotly_chart(fig_sector, use_container_width=True)
 st.markdown('<div class="section-title">Portfolio Risk</div>', unsafe_allow_html=True)
 
 weights = (positions.set_index("Ticker")["MktValue"] / total_value)
-returns_df = pd.DataFrame({tk: fetch_returns(tk) for tk in positions["Ticker"]}).dropna()
+returns_df = pd.DataFrame({
+    ticker_to_name.get(tk, tk): fetch_returns(tk) for tk in positions["Ticker"]
+}).dropna()
 
 if returns_df.empty or len(returns_df) < 20:
     st.info("Not enough return history to compute risk metrics yet.")
 else:
-    w = weights.reindex(returns_df.columns).fillna(0)
+    name_weights = weights.rename(index=ticker_to_name)
+    w = name_weights.reindex(returns_df.columns).fillna(0)
     w = w / w.sum()
     port_returns = returns_df.dot(w)
 
@@ -338,14 +344,14 @@ else:
 st.markdown('<div class="section-title">Positions</div>', unsafe_allow_html=True)
 
 display = positions[[
-    "Ticker", "Sector", "Shares", "Price", "MktValue",
+    "Name", "Sector", "Shares", "Price", "MktValue",
     "Gain", "GainPct", "DayChg", "MA7", "MA30", "Volatility"
 ]].copy()
 
 display.columns = [
-    "Ticker", "Sector", "Shares", "Price ($)", "Mkt Value ($)",
-    "Gain/Loss ($)", "Gain/Loss (%)", "Day Chg (%)",
-    "7-Day MA ($)", "30-Day MA ($)", "Ann. Vol (%)"
+    "Name", "Sector", "Shares", "Price (₩)", "Mkt Value (₩)",
+    "Gain/Loss (₩)", "Gain/Loss (%)", "Day Chg (%)",
+    "7-Day MA (₩)", "30-Day MA (₩)", "Ann. Vol (%)"
 ]
 
 # Style helper
@@ -360,17 +366,17 @@ def color_pct(v):
 styled = (
     display.style
     .format({
-        "Price ($)":       "${:.2f}",
-        "Mkt Value ($)":   "${:,.2f}",
-        "Gain/Loss ($)":   "${:+,.2f}",
+        "Price (₩)":       "₩{:,.0f}",
+        "Mkt Value (₩)":   "₩{:,.0f}",
+        "Gain/Loss (₩)":   "₩{:+,.0f}",
         "Gain/Loss (%)":   "{:+.2f}%",
         "Day Chg (%)":     "{:+.2f}%",
-        "7-Day MA ($)":    "${:.2f}",
-        "30-Day MA ($)":   "${:.2f}",
+        "7-Day MA (₩)":    "₩{:,.0f}",
+        "30-Day MA (₩)":   "₩{:,.0f}",
         "Ann. Vol (%)":    "{:.1f}%",
-        "Shares":          "{:.2f}",
+        "Shares":          "{:.0f}",
     })
-    .map(color_val, subset=["Gain/Loss ($)"])
+    .map(color_val, subset=["Gain/Loss (₩)"])
     .map(color_pct, subset=["Gain/Loss (%)", "Day Chg (%)"])
     .set_properties(**{"background-color": "#1c1f26", "border-color": "#2a2d36"})
     .set_table_styles([
@@ -394,6 +400,7 @@ for i, tk in enumerate(tickers):
         q    = quotes.get(tk, {})
         chg  = q.get("day_change_pct", 0)
         clr  = "#4ade80" if chg >= 0 else "#f87171"
+        label = ticker_to_name.get(tk, tk)
 
         fig = go.Figure()
         fig.add_trace(go.Scatter(
@@ -403,12 +410,12 @@ for i, tk in enumerate(tickers):
             line=dict(color=clr, width=1.5),
             fill="tozeroy",
             fillcolor=f"rgba({'74,222,128' if chg>=0 else '248,113,113'},0.08)",
-            name=tk,
+            name=label,
         ))
         fig.update_layout(
             **PLOTLY_LAYOUT,
             height=200,
-            title=dict(text=f"{tk}  <span style='color:{clr};font-size:13px'>{chg:+.2f}%</span>", font=dict(size=14), x=0),
+            title=dict(text=f"{label}  <span style='color:{clr};font-size:13px'>{chg:+.2f}%</span>", font=dict(size=14), x=0),
             showlegend=False,
             xaxis=dict(showticklabels=False, gridcolor="#1f2330"),
             yaxis=dict(tickprefix="$", gridcolor="#1f2330"),
