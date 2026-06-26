@@ -126,7 +126,7 @@ history   = load_history()
 tickers = portfolio["ticker"].tolist()
 has_sector = "sector" in portfolio.columns
 has_name   = "name" in portfolio.columns
-ticker_to_name = dict(zip(portfolio["ticker"], portfolio["name"])) if has_name else {}
+ticker_to_name = dict(zip(portfolio["ticker"], portfolio["name"], strict=False)) if has_name else {}
 
 with st.spinner("Fetching live prices..."):
     quotes = {t: fetch_quote(t) for t in tickers}
