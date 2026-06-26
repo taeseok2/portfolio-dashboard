@@ -1,7 +1,19 @@
-# 📈 Personal Stock Portfolio Dashboard
+# 📈 Korean ETF Portfolio Dashboard
 
-A self-updating, public portfolio tracker built with **Streamlit + Plotly + yfinance**.
+A self-updating portfolio tracker for Korean ETFs listed on KRX, built with **Streamlit + Plotly + yfinance**.
 No API keys. No back-end server. Deploys free on Streamlit Community Cloud.
+
+**Holdings tracked:**
+| Name | Ticker | Sector |
+|---|---|---|
+| ACE S&P500 | 360200.KS | Broad Market ETF |
+| TIGER Nasdaq Bio | 203780.KS | Health Care ETF |
+| PLUS US Short-Term Bond | 332610.KS | Fixed Income ETF |
+| TIGER US Tech TOP10 | 381170.KS | Technology ETF |
+| TIGER Philadelphia Semiconductor | 381180.KS | Technology ETF |
+| TIGER Nasdaq100 | 133690.KS | Broad Market ETF |
+
+All prices and values are displayed in **Korean Won (₩)**.
 
 <!-- CI/CD: lint + tests (3.11/3.12) + security audit run on every PR. -->
 
@@ -140,17 +152,19 @@ pip install -r requirements.txt
 
 ### 2. Edit your holdings
 
-Open `portfolio.csv` and replace the sample tickers with your own:
+Open `portfolio.csv` and replace with your own holdings:
 
 ```
-ticker,shares,cost_basis
-AAPL,10,150.00
-MSFT,5,280.00
+ticker,name,shares,cost_basis,sector
+360200.KS,ACE S&P500,16,16720,Broad Market ETF
+381170.KS,TIGER US Tech TOP10,67,23415,Technology ETF
 ```
 
-- **ticker** — Yahoo Finance symbol (e.g. `BRK-B`, `VOO`, `TSLA`)
+- **ticker** — Yahoo Finance symbol for KRX stocks (suffix `.KS` for KOSPI, `.KQ` for KOSDAQ)
+- **name** — display name shown in the dashboard
 - **shares** — number of shares you hold
-- **cost_basis** — your average purchase price per share
+- **cost_basis** — your average purchase price per share in KRW (₩)
+- **sector** — category label for the sector allocation chart
 
 ### 3. Seed historical data (optional but recommended)
 
@@ -195,7 +209,7 @@ Open [http://localhost:8501](http://localhost:8501).
 ## Set Up the GitHub Actions Cron
 
 The workflow at `.github/workflows/update_history.yml` runs **Monday–Friday at
-21:30 UTC** (≈ 5:30 PM ET, 30 minutes after NYSE close).
+21:30 UTC** (≈ 6:30 AM KST next day, after KRX close).
 
 ### Steps
 
@@ -227,7 +241,7 @@ All times are UTC. [crontab.guru](https://crontab.guru) is handy for testing exp
 
 | Section | Details |
 |---|---|
-| **KPI row** | Total value, cost basis, total gain/loss ($+%), estimated day P&L |
+| **KPI row** | Total value, cost basis, total gain/loss (₩+%), estimated day P&L |
 | **Allocation pie** | Market-value weight per position |
 | **Value over time** | Line chart driven by `data/history.csv` |
 | **Positions table** | Price, market value, gain/loss, day change, 7-day MA, 30-day MA, annualized volatility |
@@ -242,8 +256,7 @@ clicking) does not trigger extra API calls within that window.
 
 - This is a **tracking and analysis tool only**. It does not provide buy/sell signals
   or investment advice.
-- yfinance data is sourced from Yahoo Finance. Prices may be delayed 15 minutes during
-  market hours.
+- yfinance data is sourced from Yahoo Finance using `.KS` (KOSPI) tickers. Prices may be delayed during market hours.
 - Weekend and holiday runs are skipped by the `1-5` weekday filter in the cron.
   If a fetch fails (network error, market holiday), the script exits cleanly and
   no duplicate row is written.
