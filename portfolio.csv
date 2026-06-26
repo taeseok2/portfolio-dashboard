@@ -1,17 +1,7 @@
 ticker,shares,cost_basis,sector
-AAPL,10,150,Technology
-MSFT,5,280,Technology
-NVDA,6,400,Technology
-GOOGL,3,120,Communication Services
-META,4,300,Communication Services
-AMZN,8,175,Consumer Discretionary
-TSLA,7,210,Consumer Discretionary
-JNJ,8,150,Health Care
-UNH,3,480,Health Care
-JPM,6,180,Financials
-XOM,12,105,Energy
-KO,20,60,Consumer Staples
-WMT,10,65,Consumer Staples
-DIS,9,95,Communication Services
-VTI,4,250,Broad Market ETF
-QQQ,3,400,Broad Market ETF
+360200.KS,16,16720,Broad Market ETF
+203780.KS,8,22900,Health Care ETF
+332610.KS,1,97630,Fixed Income ETF
+381170.KS,67,23415,Technology ETF
+381180.KS,51,50356,Technology ETF
+133690.KS,4,191740,Broad Market ETF
