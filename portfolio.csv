@@ -1,7 +1,7 @@
-ticker,shares,cost_basis,sector
-360200.KS,16,16720,Broad Market ETF
-203780.KS,8,22900,Health Care ETF
-332610.KS,1,97630,Fixed Income ETF
-381170.KS,67,23415,Technology ETF
-381180.KS,51,50356,Technology ETF
-133690.KS,4,191740,Broad Market ETF
+ticker,name,shares,cost_basis,sector
+360200.KS,ACE S&P500,16,16720,Broad Market ETF
+203780.KS,TIGER Nasdaq Bio,8,22900,Health Care ETF
+332610.KS,PLUS US Short-Term Bond,1,97630,Fixed Income ETF
+381170.KS,TIGER US Tech TOP10,67,23415,Technology ETF
+381180.KS,TIGER Philadelphia Semiconductor,51,50356,Technology ETF
+133690.KS,TIGER Nasdaq100,4,191740,Broad Market ETF
