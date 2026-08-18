@@ -252,6 +252,33 @@ clicking) does not trigger extra API calls within that window.
 
 ---
 
+
+---
+
+## Power BI Version
+
+A parallel implementation of this dashboard built in Power BI, reading the same GitHub-hosted data (`portfolio.csv`, `data/history.csv`) as its source — no separate pipeline needed.
+
+**Location:** [`powerbi/`](./powerbi)
+
+| File | What it is |
+|---|---|
+| `ETF_Report.pbix` | The complete Power BI report — open directly in Power BI Desktop |
+| `power_query.m` | Power Query M scripts that load `portfolio.csv` and `data/history.csv` straight from this repo's raw GitHub URLs |
+| `dax_measures.dax` | Full DAX measure library — KPIs, positions table, moving averages, volatility, Sharpe ratio, max drawdown, plus a few fundamentals-demo measures (COUNTROWS, RANKX, CALCULATE) |
+| `compute_correlation.py` | Companion script (not yet wired into the cron) that would snapshot a ticker correlation matrix for a heatmap visual |
+| `POWERBI_BUILD_GUIDE.md` | Step-by-step guide to rebuilding the report from scratch, including the data model and every measure |
+
+**What it replicates:**
+- KPI row — Market Value, Cost Basis Value, Total Gain Loss, Total Gain Loss %
+- Positions table — Latest Price, Market Value, Sector Rank
+- Portfolio value over time (line chart)
+- Sector allocation (bar chart)
+
+**Data model:** `Portfolio` and `History` tables related on `ticker`, plus a separate `DateTable` calendar table (marked as the model's date table) related to `History[date]` for time-intelligence measures.
+
+**Not yet built:** correlation heatmap (needs `compute_correlation.py` wired into the cron first) and 30-day sparklines — both are documented as next steps in `POWERBI_BUILD_GUIDE.md`, but need more accumulated days in `data/history.csv` to be meaningful.
+
 ## Notes
 
 - This is a **tracking and analysis tool only**. It does not provide buy/sell signals
