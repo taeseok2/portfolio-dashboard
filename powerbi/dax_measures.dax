@@ -1,0 +1,183 @@
+// ================================================================
+// DAX MEASURE LIBRARY — Korean ETF Portfolio Dashboard (Power BI)
+// ================================================================
+// Assumes this data model:
+//   Portfolio[ticker, name, shares, cost_basis, sector]        (1)
+//   History[date, ticker, price, shares, market_value]          (*)
+//   Relationship: Portfolio[ticker] -> History[ticker], single direction
+//
+// Column names confirmed directly against fetch_data.py — it writes
+// "price" (not "close") plus a pre-computed "market_value" column
+// (price * shares at fetch time).
+//
+// Items marked "CALCULATED COLUMN" go on the History table (Modeling >
+// New Column), not in the measures pane — they need row-by-row context
+// per ticker that a measure alone can't provide. Everything else is a
+// measure (Modeling > New Measure).
+//
+// Mark History[date] as a Date table (or build a separate calendar
+// table) for DATESINPERIOD to behave correctly with gaps/holidays.
+// ================================================================
+
+
+// ---------- Price lookups ----------
+
+Latest Price =
+VAR AsOfDate = CALCULATE(MAX(History[date]), ALLEXCEPT(History, History[ticker]))
+RETURN
+    CALCULATE(MAX(History[price]), History[date] = AsOfDate)
+
+Prior Close =
+VAR AsOfDate = CALCULATE(MAX(History[date]), ALLEXCEPT(History, History[ticker]))
+VAR PriorDate =
+    CALCULATE(
+        MAX(History[date]),
+        FILTER(ALLEXCEPT(History, History[ticker]), History[date] < AsOfDate)
+    )
+RETURN
+    CALCULATE(MAX(History[price]), History[date] = PriorDate)
+
+
+// ---------- KPI row ----------
+
+Market Value = SUMX(Portfolio, Portfolio[shares] * [Latest Price])
+
+Cost Basis Value = SUMX(Portfolio, Portfolio[shares] * Portfolio[cost_basis])
+
+Total Gain Loss = [Market Value] - [Cost Basis Value]
+
+Total Gain Loss % = DIVIDE([Total Gain Loss], [Cost Basis Value])
+
+Day P&L = SUMX(Portfolio, Portfolio[shares] * ([Latest Price] - [Prior Close]))
+
+Day P&L % = DIVIDE([Day P&L], [Market Value] - [Day P&L])
+
+Portfolio Value (History) = SUM(History[market_value])
+// Uses fetch_data.py's pre-computed market_value column directly —
+// no relationship needed. This is the simplest, most direct source
+// for the "Value over time" line chart (axis = History[date]).
+
+
+// ---------- Positions table ----------
+
+Day Change % = DIVIDE([Latest Price] - [Prior Close], [Prior Close])
+
+Position Market Value = Portfolio[shares] * [Latest Price]   // use as a measure per-row in a table visual
+
+Position Gain Loss = ([Latest Price] - Portfolio[cost_basis]) * Portfolio[shares]
+
+7-Day MA =
+VAR AsOfDate = CALCULATE(MAX(History[date]), ALLEXCEPT(History, History[ticker]))
+RETURN
+    CALCULATE(AVERAGE(History[price]), DATESINPERIOD(History[date], AsOfDate, -7, DAY))
+
+30-Day MA =
+VAR AsOfDate = CALCULATE(MAX(History[date]), ALLEXCEPT(History, History[ticker]))
+RETURN
+    CALCULATE(AVERAGE(History[price]), DATESINPERIOD(History[date], AsOfDate, -30, DAY))
+
+
+// ---------- Daily Return (CALCULATED COLUMN on History) ----------
+// Needed as a building block for volatility, Sharpe, and drawdown below.
+
+Daily Return =
+VAR CurrentDate = History[date]
+VAR PriorDate =
+    CALCULATE(
+        MAX(History[date]),
+        ALLEXCEPT(History, History[ticker]),
+        History[date] < CurrentDate
+    )
+VAR PriorPrice =
+    CALCULATE(
+        MAX(History[price]),
+        ALLEXCEPT(History, History[ticker]),
+        History[date] = PriorDate
+    )
+RETURN
+    DIVIDE(History[price] - PriorPrice, PriorPrice)
+
+
+// ---------- Risk metrics ----------
+
+Annualized Volatility =
+VAR AsOfDate = CALCULATE(MAX(History[date]), ALLEXCEPT(History, History[ticker]))
+VAR DailyStDev =
+    CALCULATE(
+        STDEV.P(History[Daily Return]),
+        DATESINPERIOD(History[date], AsOfDate, -30, DAY)
+    )
+RETURN
+    DailyStDev * SQRT(252)
+
+Avg Daily Return 30D =
+VAR AsOfDate = CALCULATE(MAX(History[date]), ALLEXCEPT(History, History[ticker]))
+RETURN
+    CALCULATE(AVERAGE(History[Daily Return]), DATESINPERIOD(History[date], AsOfDate, -30, DAY))
+
+Annualized Return = [Avg Daily Return 30D] * 252
+
+Risk Free Rate = 0.03   // annualized — update to current rate as needed
+
+Sharpe Ratio = DIVIDE([Annualized Return] - [Risk Free Rate], [Annualized Volatility])
+
+
+// ---------- Max Drawdown (2 CALCULATED COLUMNS on History + 1 measure) ----------
+
+Running Peak =
+VAR CurrentTicker = History[ticker]
+VAR CurrentDate = History[date]
+RETURN
+    CALCULATE(
+        MAX(History[price]),
+        ALLEXCEPT(History, History[ticker]),
+        History[date] <= CurrentDate
+    )
+
+Drawdown = DIVIDE(History[price] - History[Running Peak], History[Running Peak])
+
+Max Drawdown = MIN(History[Drawdown])
+
+
+// ---------- Sector allocation / position weight ----------
+
+Position Weight % = DIVIDE([Market Value], CALCULATE([Market Value], ALL(Portfolio)))
+
+Sector Allocation % = DIVIDE([Market Value], CALCULATE([Market Value], ALL(Portfolio)))
+// Same formula as above — the result differs based on whether the
+// visual is sliced by ticker (position weight) or by sector (sector
+// allocation); use one measure, rename per visual as needed.
+
+
+// ---------- Correlation heatmap ----------
+// No DAX measure needed — import data/correlation_matrix.csv (see
+// compute_correlation.py) as its own "Correlation" table and drop
+// ticker_a on Rows, ticker_b on Columns, correlation on Values in a
+// Matrix visual, then apply conditional formatting (color scale) to
+// the correlation field for the heatmap effect.
+
+
+// ---------- DAX fundamentals demo (COUNTROWS, AVERAGE, RANKX, CALCULATE) ----------
+
+Position Count = COUNTROWS(Portfolio)
+// Simplest row-counting pattern — no column or iteration needed.
+
+Avg Cost Basis = AVERAGE(Portfolio[cost_basis])
+// Basic column aggregation.
+
+Sector Rank =
+IF(
+    HASONEVALUE(Portfolio[ticker]),
+    RANKX(ALL(Portfolio), [Market Value])
+)
+// ALL(Portfolio) strips the current row filter so RANKX can compare
+// each row against every other row rather than just itself — the
+// standard pattern behind any "rank/top N" requirement.
+// HASONEVALUE guards against the Total row: with no single ticker in
+// context, [Market Value] evaluates to the whole-portfolio total,
+// which RANKX would rank #1 against individual positions — a common
+// gotcha. The IF with no ELSE returns BLANK() at that row instead.
+
+Broad Market Value = CALCULATE([Market Value], Portfolio[sector] = "Broad Market ETF")
+// CALCULATE overrides an existing measure's filter context with an
+// explicit condition — the single most load-bearing pattern in DAX.
