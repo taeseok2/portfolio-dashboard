@@ -139,7 +139,7 @@ portfolio-dashboard/
 ### 1. Clone and install
 
 ```bash
-git clone https://github.com/<taeseok2>/portfolio-dashboard.git
+git clone https://github.com/taeseok2/portfolio-dashboard.git
 cd portfolio-dashboard
 python -m venv .venv
 # Windows:
